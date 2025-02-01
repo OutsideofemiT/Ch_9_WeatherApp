@@ -1,47 +1,41 @@
 import { Router } from 'express';
 import HistoryService from '../../service/historyService.js';
-import WeatherService from '../../service/weatherService.js';
+import weatherService from '../../service/weatherService.js';
 
- const router = Router();
+const router = Router();
 
-// TODO: POST Request with city name to retrieve weather data
-router.post('/', async (req, res) => {
-const { city } = req.body;
-try {
-// TODO: GET weather data from city name
-const weatherData = await WeatherService.getWeatherData(city);
-  
-  // TODO: save city to search history
-  await HistoryService.saveCity(city);
-  
-  //Return weather data to the client
-  res.status(200).json(weatherData);
-} catch (error) {
-  res.status(500).json({error: 'Failed to retrieve weather data'});
-}
-});
-
-// TODO: GET search history
-router.get('/history', async (req, res) => {
+router.get('/weather/:city', async (req, res) => {
+  const city = req.params.city;
   try {
-    const history = await HistoryService.getSearchHistory();
-    res.status(200).json(history);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to retrieve search history'});
+    const weather = await weatherService.getWeatherForCity(city);
+    await HistoryService.saveCity(city);
+    res.json(weather);
+  } catch (error: unknown) {
+    const errorMessage = (error instanceof Error) ? error.message : 'Unknown error';
+    res.status(500).json({ error: errorMessage });
   }
 });
 
-// * BONUS TODO: DELETE city from search history
-router.delete('/history/:id', async (req, res) => {
-  const { id } = req.params
+router.get('/history', async (_req, res) => {
+  try {
+    const history = await HistoryService.getSearchHistory();
+    res.json(history);
+  } catch (error: unknown) {
+    const errorMessage = (error instanceof Error) ? error.message : 'Unknown error';
+    res.status(500).json({ error: errorMessage });
+  }
+});
 
+router.delete('/history/:id', async (req, res) => {
+  const id = req.params.id;
   try {
     await HistoryService.deleteCity(id);
-    res.status(200).json({ message: 'City deleted successfully'});
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete city from search history'});
-
+    res.status(204).send();
+  } catch (error: unknown) {
+    const errorMessage = (error instanceof Error) ? error.message : 'Unknown error';
+    res.status(500).json({ error: errorMessage });
   }
 });
 
 export default router;
+
